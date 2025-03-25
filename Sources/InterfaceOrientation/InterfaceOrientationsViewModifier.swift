@@ -20,34 +20,36 @@ extension View {
     /// }
     /// ```
     /// - Parameter orientations: The orientations supported by this view, or `nil` to use default app orientations.
-    public func interfaceOrientations(_ orientations: UIInterfaceOrientationMask?) -> some View {
-        return modifier(InterfaceOrientationsViewModifier(orientations: orientations ?? []))
+    public func interfaceOrientations(_ orientations: Binding<UIInterfaceOrientationMask?>) -> some View {
+        return modifier(InterfaceOrientationsViewModifier(orientations: orientations))
     }
 }
 
 private struct InterfaceOrientationsViewModifier: ViewModifier {
-    private let orientations: UIInterfaceOrientationMask
+    @Binding var orientations: UIInterfaceOrientationMask?
     @State private var id = UUID()
     
-    init(orientations: UIInterfaceOrientationMask) {
-        self.orientations = orientations
+    init(orientations: Binding<UIInterfaceOrientationMask?>) {
+        self._orientations = orientations
     }
     
     func body(content: Content) -> some View {
         content
             .onAppear {
-                if !orientations.isEmpty {
+                if let orientations,
+                   !orientations.isEmpty {
                     InterfaceOrientationCoordinator.shared.register(orientations: orientations, id: id)
                 }
             }
             .onDisappear {
                 InterfaceOrientationCoordinator.shared.unregister(orientationsWithID: id)
             }
-            .onChange(of: orientations) { newValue in
-                if orientations.isEmpty {
-                    InterfaceOrientationCoordinator.shared.unregister(orientationsWithID: id)
+            .onChange(of: orientations) {
+                if let orientations,
+                   !orientations.isEmpty {
+                    InterfaceOrientationCoordinator.shared.register(orientations: orientations, id: id)
                 } else {
-                    InterfaceOrientationCoordinator.shared.register(orientations: newValue, id: id)
+                    InterfaceOrientationCoordinator.shared.unregister(orientationsWithID: id)
                 }
             }
     }
